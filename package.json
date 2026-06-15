@@ -1,0 +1,72 @@
+{
+  "name": "@effectiveai/m365-agents-acp-bridge",
+  "version": "0.1.0",
+  "description": "Expose Microsoft Copilot Studio / M365 Agents SDK agents as Agent Client Protocol-compatible agents.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": {
+    "m365-agents-acp-bridge": "dist/cli.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "package.json"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@9.12.3",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/effectiveai/m365-agents-acp-bridge.git"
+  },
+  "bugs": {
+    "url": "https://github.com/effectiveai/m365-agents-acp-bridge/issues"
+  },
+  "homepage": "https://github.com/effectiveai/m365-agents-acp-bridge#readme",
+  "keywords": [
+    "acp",
+    "agent-client-protocol",
+    "m365",
+    "copilot-studio",
+    "microsoft-agents"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/cli.ts",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test"
+  },
+  "dependencies": {
+    "@agentclientprotocol/sdk": "0.25.1",
+    "@microsoft/agents-activity": "1.5.3",
+    "@microsoft/agents-copilotstudio-client": "1.5.3",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.30.1",
+    "@types/node": "^22.15.33",
+    "@typescript-eslint/eslint-plugin": "^8.35.0",
+    "@typescript-eslint/parser": "^8.35.0",
+    "eslint": "^9.30.1",
+    "eslint-config-prettier": "^10.1.5",
+    "globals": "^15.15.0",
+    "prettier": "^3.6.2",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
+}
