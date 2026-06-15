@@ -27,12 +27,12 @@
   "packageManager": "pnpm@9.12.3",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/effectiveai/m365-agents-acp-bridge.git"
+    "url": "git+https://github.com/effectiveailabs/m365-agents-acp-bridge.git"
   },
   "bugs": {
-    "url": "https://github.com/effectiveai/m365-agents-acp-bridge/issues"
+    "url": "https://github.com/effectiveailabs/m365-agents-acp-bridge/issues"
   },
-  "homepage": "https://github.com/effectiveai/m365-agents-acp-bridge#readme",
+  "homepage": "https://github.com/effectiveailabs/m365-agents-acp-bridge#readme",
   "keywords": [
     "acp",
     "agent-client-protocol",

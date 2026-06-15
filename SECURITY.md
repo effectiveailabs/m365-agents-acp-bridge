@@ -2,7 +2,7 @@
 
 ## Reporting
 
-After the public GitHub repository exists, please report vulnerabilities through GitHub Security Advisories for `effectiveai/m365-agents-acp-bridge`.
+After the public GitHub repository exists, please report vulnerabilities through GitHub Security Advisories for `effectiveailabs/m365-agents-acp-bridge`.
 
 Until then, report privately to the repository maintainers.
 
