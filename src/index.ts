@@ -42,3 +42,5 @@ export { MemorySessionStore } from './session/memorySessionStore.js';
 export type { BridgeSessionRecord, SessionStore } from './session/memorySessionStore.js';
 export { startHttpBridgeServer } from './server/httpServer.js';
 export type { HttpBridgeServerOptions, StartedHttpBridgeServer } from './server/httpServer.js';
+export { createAcpAgentConnection, runStdioBridgeServer } from './server/stdioServer.js';
+export type { StdioBridgeServerOptions } from './server/stdioServer.js';

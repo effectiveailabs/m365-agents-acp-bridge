@@ -131,17 +131,20 @@ async function routeRequest(
   }
 
   if (request.method === 'GET' && isAcpPath(url.pathname)) {
+    assertAllowedAcpPath(url.pathname, config);
     broker.add(response);
     return;
   }
 
   if (request.method === 'DELETE' && isAcpPath(url.pathname)) {
+    assertAllowedAcpPath(url.pathname, config);
     response.writeHead(204);
     response.end();
     return;
   }
 
   if (request.method === 'POST' && isAcpPath(url.pathname)) {
+    assertAllowedAcpPath(url.pathname, config);
     const agentId = agentIdFromPath(url.pathname);
     const message = (await readJson(request)) as AnyMessage;
     const auth = bearerToken(request);
@@ -218,25 +221,11 @@ async function dispatchRequest(
     case 'initialize':
       return agent.initialize(params as never);
     case 'authenticate':
-      return agent.authenticate(params as never);
+      return agent.authenticate(withAuthMeta(params, bearerAccessToken) as never);
     case 'session/new':
-      return agent.newSession({
-        ...(params as Record<string, unknown>),
-        _meta: {
-          ...meta(params),
-          ...(agentId ? { agentId } : {}),
-        },
-      } as never);
+      return agent.newSession(withAuthMeta(params, bearerAccessToken, { agentId }) as never);
     case 'session/prompt':
-      if (bearerAccessToken) {
-        await agent.authenticate({
-          methodId: 'external_token',
-          _meta: {
-            accessToken: bearerAccessToken,
-          },
-        });
-      }
-      return agent.prompt(params as never);
+      return agent.prompt(withAuthMeta(params, bearerAccessToken) as never);
     default:
       throw new BridgeError('MS_UNSUPPORTED_ACTIVITY', `Unsupported ACP method: ${method}`, 400);
   }
@@ -260,6 +249,18 @@ function isAcpPath(pathname: string): boolean {
   return pathname === '/acp' || /^\/agents\/[^/]+\/acp$/.test(pathname);
 }
 
+function assertAllowedAcpPath(pathname: string, config: BridgeConfig): void {
+  if (pathname !== '/acp' || config.agents.length === 1) {
+    return;
+  }
+
+  throw new BridgeError(
+    'MS_AGENT_NOT_CONFIGURED',
+    'Use /agents/:agentId/acp when multiple agents are configured',
+    400,
+  );
+}
+
 function agentIdFromPath(pathname: string): string | undefined {
   const match = /^\/agents\/([^/]+)\/acp$/.exec(pathname);
   return match ? decodeURIComponent(match[1] ?? '') : undefined;
@@ -278,6 +279,22 @@ function meta(params: unknown): Record<string, unknown> {
     return {};
   }
   return params._meta;
+}
+
+function withAuthMeta(
+  params: unknown,
+  bearerAccessToken: string | undefined,
+  extraMeta: Record<string, unknown> = {},
+): Record<string, unknown> {
+  const base = isRecord(params) ? params : {};
+  return {
+    ...base,
+    _meta: {
+      ...meta(params),
+      ...extraMeta,
+      ...(bearerAccessToken ? { accessToken: bearerAccessToken } : {}),
+    },
+  };
 }
 
 async function readJson(request: IncomingMessage): Promise<unknown> {

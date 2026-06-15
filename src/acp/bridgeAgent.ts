@@ -82,7 +82,7 @@ export class BridgeAgent implements Agent {
     const agent = this.selectAgent(params._meta);
     const microsoftSession = await this.microsoft.startSession({
       agent,
-      auth: this.auth,
+      auth: this.authForMeta(params._meta),
     });
     const session = await this.sessions.create({
       agentId: agent.id,
@@ -121,7 +121,7 @@ export class BridgeAgent implements Agent {
         agent,
         session: session.microsoft,
         prompt: params.prompt,
-        auth: this.auth,
+        auth: this.authForMeta(params._meta),
         signal: abortController.signal,
       })) {
         if (abortController.signal.aborted) {
@@ -269,6 +269,19 @@ export class BridgeAgent implements Agent {
     return this.agentById(agentId);
   }
 
+  private authForMeta(meta: Record<string, unknown> | null | undefined): RequestAuthContext {
+    const token = tokenFromMeta(meta);
+    if (!token) {
+      return this.auth;
+    }
+
+    return {
+      accessToken: token,
+      authMethodId: this.auth.authMethodId ?? 'external_token',
+      meta: isRecord(meta) ? meta : undefined,
+    };
+  }
+
   private agentById(agentId: string): AgentConfig {
     const agent = this.config.agents.find((candidate) => candidate.id === agentId);
     if (!agent) {
@@ -308,7 +321,10 @@ function authMethodsForMode(mode: BridgeConfig['auth']['mode']) {
 }
 
 function tokenFromAuthenticateMeta(params: AuthenticateRequest): string | undefined {
-  const meta = params._meta;
+  return tokenFromMeta(params._meta);
+}
+
+function tokenFromMeta(meta: Record<string, unknown> | null | undefined): string | undefined {
   if (!isRecord(meta)) {
     return undefined;
   }

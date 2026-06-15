@@ -58,6 +58,35 @@ describe('BridgeAgent', () => {
     });
   });
 
+  it('uses per-request auth metadata instead of leaking the previous authenticate token', async () => {
+    const fake = new FakeMicrosoftAgentAdapter();
+    const agent = new BridgeAgent({
+      config: testConfig(),
+      microsoft: fake,
+      updates: new RecordingUpdateSink(),
+      sessions: new MemorySessionStore(),
+    });
+
+    await agent.authenticate({
+      methodId: 'external_token',
+      _meta: { accessToken: 'old-token' },
+    });
+
+    const session = await agent.newSession({
+      cwd: '/tmp',
+      mcpServers: [],
+      _meta: { accessToken: 'new-session-token' },
+    });
+    await agent.prompt({
+      sessionId: session.sessionId,
+      prompt: [{ type: 'text', text: 'Hello' }],
+      _meta: { accessToken: 'new-prompt-token' },
+    });
+
+    expect(fake.startSessionCalls[0]?.auth.accessToken).toBe('new-session-token');
+    expect(fake.sendPromptCalls[0]?.auth.accessToken).toBe('new-prompt-token');
+  });
+
   it('treats session/cancel as best-effort notification and suppresses late fake events', async () => {
     const fake = new FakeMicrosoftAgentAdapter({
       promptEvents: [

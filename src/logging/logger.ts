@@ -10,26 +10,44 @@ export interface Logger {
 export const consoleLogger: Logger = {
   debug(message, fields) {
     if (process.env.M365_ACP_LOG_LEVEL === 'debug') {
-      writeLog('debug', message, fields);
+      writeLog(console.log, 'debug', message, fields);
     }
   },
   info(message, fields) {
-    writeLog('info', message, fields);
+    writeLog(console.log, 'info', message, fields);
   },
   warn(message, fields) {
-    writeLog('warn', message, fields);
+    writeLog(console.error, 'warn', message, fields);
   },
   error(message, fields) {
-    writeLog('error', message, fields);
+    writeLog(console.error, 'error', message, fields);
   },
 };
 
-function writeLog(level: string, message: string, fields?: Record<string, unknown>): void {
+export const stderrLogger: Logger = {
+  debug(message, fields) {
+    if (process.env.M365_ACP_LOG_LEVEL === 'debug') {
+      writeLog(console.error, 'debug', message, fields);
+    }
+  },
+  info(message, fields) {
+    writeLog(console.error, 'info', message, fields);
+  },
+  warn(message, fields) {
+    writeLog(console.error, 'warn', message, fields);
+  },
+  error(message, fields) {
+    writeLog(console.error, 'error', message, fields);
+  },
+};
+
+function writeLog(
+  write: (line: string) => void,
+  level: string,
+  message: string,
+  fields?: Record<string, unknown>,
+): void {
   const payload = fields ? ` ${JSON.stringify(redactSensitive(fields))}` : '';
   const line = `[${level}] ${message}${payload}`;
-  if (level === 'error' || level === 'warn') {
-    console.error(line);
-    return;
-  }
-  console.log(line);
+  write(line);
 }

@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 import { loadBridgeConfig, safeConfigForLog } from './config/load.js';
-import { consoleLogger } from './logging/logger.js';
+import { consoleLogger, stderrLogger } from './logging/logger.js';
 import { CopilotStudioMicrosoftAdapter } from './microsoft/realAdapter.js';
 import { startHttpBridgeServer } from './server/httpServer.js';
+import { runStdioBridgeServer } from './server/stdioServer.js';
 
 async function main(): Promise<void> {
   const [command, ...args] = process.argv.slice(2);
@@ -14,6 +15,20 @@ async function main(): Promise<void> {
 
   if (command === 'init') {
     printInitTemplate();
+    return;
+  }
+
+  if (command === 'stdio') {
+    const configFile = valueAfter(args, '--config');
+    const config = await loadBridgeConfig({ configFile });
+    stderrLogger.debug('loaded config', {
+      config: safeConfigForLog(config) as Record<string, unknown>,
+    });
+    await runStdioBridgeServer({
+      config,
+      microsoft: new CopilotStudioMicrosoftAdapter(config),
+      logger: stderrLogger,
+    });
     return;
   }
 
@@ -46,10 +61,12 @@ function printHelp(): void {
 
 Usage:
   m365-agents-acp-bridge serve --config ./m365-agents-acp-bridge.config.json
+  m365-agents-acp-bridge stdio --config ./m365-agents-acp-bridge.config.json
   m365-agents-acp-bridge init
 
 Commands:
   serve   Start the HTTP/SSE ACP bridge
+  stdio   Start the ACP bridge over stdio NDJSON
   init    Print an example config
 `);
 }

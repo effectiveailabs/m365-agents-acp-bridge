@@ -58,6 +58,14 @@ GET  /agents/:agentId/acp
 DELETE /agents/:agentId/acp
 ```
 
+For local ACP clients that expect stdio NDJSON:
+
+```bash
+m365-agents-acp-bridge stdio --config ./m365-agents-acp-bridge.config.json
+```
+
+HTTP/SSE remains the primary runtime transport for hosted bridge deployments.
+
 ## Config
 
 Secrets are references, not plaintext config values.
@@ -105,6 +113,7 @@ Current automated coverage:
 - ACP initialize/authenticate/session lifecycle with a fake Microsoft adapter
 - best-effort `session/cancel`
 - HTTP/SSE JSON-RPC transport smoke test
+- stdio ACP transport smoke test through the official ACP TypeScript SDK
 - real adapter consumption of Microsoft-like SSE by stubbing `fetch`
 
 Live Microsoft validation is a separate compatibility step. A Copilot Studio trial can create agents and use the test chat panel, but Microsoft documentation says trial licenses cannot publish agents. Agents SDK validation needs an existing Copilot Studio agent, connection string or expanded metadata, an Entra app registration, and delegated `CopilotStudio.Copilots.Invoke` consent.
