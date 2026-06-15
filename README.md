@@ -109,6 +109,8 @@ Current automated coverage:
 
 Live Microsoft validation is a separate compatibility step. A Copilot Studio trial can create agents and use the test chat panel, but Microsoft documentation says trial licenses cannot publish agents. Agents SDK validation needs an existing Copilot Studio agent, connection string or expanded metadata, an Entra app registration, and delegated `CopilotStudio.Copilots.Invoke` consent.
 
+See [docs/live-validation.md](docs/live-validation.md) for the live Microsoft validation ladder and credential gate.
+
 ## Development
 
 ```bash
@@ -117,6 +119,8 @@ pnpm check
 pnpm test
 pnpm build
 ```
+
+`pnpm check` also runs a package tarball smoke test to confirm built output imports cleanly, the CLI starts, and test secret fixtures are not published.
 
 ## License
 
