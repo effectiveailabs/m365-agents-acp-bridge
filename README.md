@@ -239,7 +239,7 @@ Current automated coverage:
 - real adapter consumption of Microsoft-like SSE by stubbing `fetch`
 - Microsoft SDK stalled-stream timeout behavior
 
-Live Microsoft validation is a separate compatibility step. A Copilot Studio trial can create agents and expose a Native app / Agents SDK connection string, but Microsoft documentation says trial licenses cannot publish agents. Agents SDK validation needs an existing Copilot Studio agent, connection string or expanded metadata, an Entra app registration, and delegated `CopilotStudio.Copilots.Invoke` consent.
+Live Microsoft validation is a separate compatibility step. A Copilot Studio trial can create agents and expose a Native app / Agents SDK connection string, but Microsoft documentation says trial licenses cannot publish agents. Pay-as-you-go covers runtime billing, but the maker still needs tenant-level Copilot Studio author access or a qualifying license before they can publish. Agents SDK validation needs an existing published Copilot Studio agent, connection string or expanded metadata, an Entra app registration, delegated `CopilotStudio.Copilots.Invoke` consent, and confirmation that the maker can publish agents.
 
 See [docs/live-validation.md](docs/live-validation.md) for the live Microsoft validation ladder and credential gate.
 

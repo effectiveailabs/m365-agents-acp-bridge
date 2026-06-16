@@ -27,6 +27,7 @@ Current Microsoft documentation makes fully automated live validation unreliable
 - Microsoft 365 Developer Program E5 sandboxes are available only to qualifying members, such as Visual Studio Professional/Enterprise subscribers or members of qualifying programs. They are development/test tenants and may need recreation every 90 days.
 - Copilot Studio trials can create agents and use the test chat panel, but Microsoft says trial licenses cannot publish agents.
 - Copilot Studio trial environments expire after 30 days and delete agents/data when the environment expires.
+- Copilot Studio pay-as-you-go covers runtime consumption through an Azure subscription, but maker access still needs one of Microsoft's authoring access paths. For PAYG validation, a Microsoft 365/Power Platform tenant admin must configure the **Copilot Studio authors** tenant setting for a security group containing the maker, or assign another qualifying maker license/role documented by Microsoft. Azure subscription Owner is not enough.
 - The Microsoft 365 Agents SDK path requires an existing Copilot Studio agent plus either the SDK connection string/direct-connect URL or expanded metadata.
 
 ## CLI Probes Before Requesting Credentials
@@ -83,6 +84,18 @@ az ad sp list \
 
 The expected API app ID is `8578e004-a5c6-46e7-913e-12f58912df43`. The delegated scope value needed by the bridge is `CopilotStudio.Copilots.Invoke`.
 
+Before attempting a published-agent validation, verify that the signed-in user has tenant-level authority or that a tenant admin has already completed the authoring access setup:
+
+```bash
+az rest \
+  --method get \
+  --resource https://graph.microsoft.com \
+  --url 'https://graph.microsoft.com/v1.0/me/memberOf?$select=id,displayName,roleTemplateId' \
+  --output json
+```
+
+If the user is only an Azure subscription Owner and not a Microsoft 365/Entra admin, they can create Azure PAYG resources but can't manage PPAC tenant settings such as **Copilot Studio authors**.
+
 The Power Platform CLI (`pac`) is useful when it authenticates cleanly, but live validation should not depend on it. If `pac auth create --deviceCode` fails locally, prefer the Azure CLI probes above and continue with explicit live agent inputs.
 
 If environment creation is not blocked but the environment list is empty, the remaining setup is a Microsoft product/licensing step: sign up for Power Apps Developer Plan, Power Apps trial, Copilot Studio trial, or use an existing paid tenant/environment. Microsoft documents that Microsoft 365 licenses alone do not allow users to manage environments.
@@ -104,6 +117,7 @@ For a live Agents SDK invocation test, the validating tenant needs:
 - an Entra app registration,
 - Power Platform API delegated permission `CopilotStudio.Copilots.Invoke`,
 - admin consent where required,
+- maker authoring access sufficient to publish agents, such as PAYG **Copilot Studio authors** tenant setting membership or a qualifying Copilot Studio/Microsoft 365 Copilot authoring license,
 - a short-lived delegated Microsoft access token for the invoking user.
 
 Microsoft references:
@@ -129,6 +143,18 @@ On 2026-06-16, a self-service test tenant validated the bridge against the real 
 
 This proves the ACP transport, delegated-token handoff, Microsoft SDK connection string path, and activity streaming path against the real Microsoft endpoint. It does not prove successful business-agent response generation because the test tenant could not publish the agent.
 
+Additional PAYG attempt on 2026-06-16:
+
+- A pay-as-you-go Azure subscription was created and protected with a low monthly Azure budget.
+- `Microsoft.PowerPlatform` was registered on the subscription.
+- A Power Platform billing policy with Copilot Studio message metering was created and linked to a new Sandbox environment with Dataverse.
+- A real Copilot Studio agent draft was created successfully in the Sandbox environment.
+- The maker had Sandbox Dataverse `System Administrator`, `Environment Maker`, `Bot Author`, `Bot Contributor`, `Microsoft Copilot Administrator`, and related roles.
+- Publishing was still blocked with Microsoft's message that the user did not have a license allowing publishing in Copilot Studio.
+- The signed-in user was Azure subscription Owner but not a Microsoft 365/Entra Global Administrator, AI Administrator, or Power Platform Administrator; PPAC tenant settings returned unauthorized, and Microsoft Graph denied self-assigning a tenant admin role.
+
+Conclusion: for PAYG published-agent validation, the required final setup is tenant-admin action, not more Azure or Dataverse setup. A tenant admin must either add the maker's security group to the PPAC **Copilot Studio authors** tenant setting, assign a qualifying Copilot Studio user/maker license, or sign in to complete the publish step.
+
 ## Direct Line Boundary
 
 Microsoft documents Direct Line as the fallback when the Microsoft 365 Agents SDK does not support a scenario, including service principal token scenarios. This bridge's v1 target remains the Agents SDK path with delegated user tokens. Direct Line support can be considered later as a separate adapter mode.
@@ -145,6 +171,7 @@ Minimum live validation inputs:
 - app registration client ID,
 - short-lived delegated Microsoft access token with `CopilotStudio.Copilots.Invoke`,
 - confirmation that the agent is published/configured for Agents SDK invocation.
+- confirmation that the maker can publish agents, not only create/test them.
 
 Do not request or store:
 
