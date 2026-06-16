@@ -10,11 +10,17 @@ import type {
   StartMicrosoftSessionInput,
 } from './types.js';
 
+const DEFAULT_MICROSOFT_STREAM_TIMEOUT_MS = 60_000;
+
 export class CopilotStudioMicrosoftAdapter implements MicrosoftAgentAdapter {
+  private readonly streamTimeoutMs: number;
+
   constructor(
     private readonly config: BridgeConfig,
     private readonly env: NodeJS.ProcessEnv = process.env,
-  ) {}
+  ) {
+    this.streamTimeoutMs = streamTimeoutMsFromEnv(env);
+  }
 
   async startSession(input: StartMicrosoftSessionInput) {
     try {
@@ -22,7 +28,10 @@ export class CopilotStudioMicrosoftAdapter implements MicrosoftAgentAdapter {
       let conversationId: string | undefined;
       let activityId: string | undefined;
 
-      for await (const activity of client.startConversationStreaming(true)) {
+      for await (const activity of withMicrosoftStreamTimeout(
+        client.startConversationStreaming(true),
+        this.streamTimeoutMs,
+      )) {
         conversationId = activity.conversation?.id ?? conversationId;
         activityId = activity.id ?? activityId;
         if (conversationId) {
@@ -68,7 +77,10 @@ export class CopilotStudioMicrosoftAdapter implements MicrosoftAgentAdapter {
         ? client.sendActivityStreaming(activity, input.session.conversationId)
         : client.sendActivityStreaming(activity);
 
-      for await (const responseActivity of stream) {
+      for await (const responseActivity of withMicrosoftStreamTimeout(
+        stream,
+        this.streamTimeoutMs,
+      )) {
         if (input.signal?.aborted) {
           return;
         }
@@ -119,6 +131,79 @@ export class CopilotStudioMicrosoftAdapter implements MicrosoftAgentAdapter {
       useExperimentalEndpoint: copilot.useExperimentalEndpoint,
     });
   }
+}
+
+async function* withMicrosoftStreamTimeout<T>(
+  stream: AsyncIterable<T>,
+  timeoutMs: number,
+): AsyncIterable<T> {
+  const iterator = stream[Symbol.asyncIterator]();
+  try {
+    for (;;) {
+      const next = await nextWithTimeout(iterator, timeoutMs);
+      if (next.done) {
+        return;
+      }
+      yield next.value;
+    }
+  } finally {
+    await closeIteratorBestEffort(iterator, timeoutMs);
+  }
+}
+
+async function nextWithTimeout<T>(
+  iterator: AsyncIterator<T>,
+  timeoutMs: number,
+): Promise<IteratorResult<T>> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  const next = iterator.next();
+  next.catch(() => undefined);
+
+  try {
+    return await Promise.race([
+      next,
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(() => {
+          reject(
+            new BridgeError(
+              'MS_STREAM_INTERRUPTED',
+              `Microsoft Copilot Studio stream timed out after ${timeoutMs}ms`,
+              504,
+            ),
+          );
+        }, timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeout) {
+      clearTimeout(timeout);
+    }
+  }
+}
+
+async function closeIteratorBestEffort<T>(
+  iterator: AsyncIterator<T>,
+  timeoutMs: number,
+): Promise<void> {
+  if (!iterator.return) {
+    return;
+  }
+
+  const closeTimeoutMs = Math.min(1000, Math.max(10, timeoutMs));
+  await Promise.race([
+    iterator.return(),
+    new Promise((resolve) => setTimeout(resolve, closeTimeoutMs)),
+  ]).catch(() => undefined);
+}
+
+function streamTimeoutMsFromEnv(env: NodeJS.ProcessEnv): number {
+  const raw = env.M365_ACP_MICROSOFT_STREAM_TIMEOUT_MS;
+  if (!raw) {
+    return DEFAULT_MICROSOFT_STREAM_TIMEOUT_MS;
+  }
+
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_MICROSOFT_STREAM_TIMEOUT_MS;
 }
 
 function mapMicrosoftClientError(error: unknown): BridgeError {

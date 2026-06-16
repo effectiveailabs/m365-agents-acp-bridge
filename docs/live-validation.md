@@ -112,6 +112,23 @@ Microsoft references:
 - [Power Platform API authentication](https://learn.microsoft.com/en-us/power-platform/admin/programmability-authentication-v2)
 - [Copilot Studio Microsoft authentication setup](https://learn.microsoft.com/en-us/microsoft-copilot-studio/guidance/kit-microsoft-authentication)
 
+## Observed Compatibility Run
+
+On 2026-06-16, a self-service test tenant validated the bridge against the real Copilot Studio / Microsoft 365 Agents SDK endpoint without storing secrets in the repo:
+
+- A tenant-level Azure CLI login worked without an Azure subscription.
+- A Copilot Studio trial allowed creating a Developer environment and a test agent.
+- Sandbox environment creation failed because the tenant had no available Dataverse database capacity.
+- Trial licensing blocked publishing the agent.
+- The Native app channel still exposed an Agents SDK direct-connect URL before publish.
+- Azure CLI's built-in client could mint a Power Platform token, but that token carried `CopilotStudio.Copilots.Test`, not `CopilotStudio.Copilots.Invoke`; the Agents SDK endpoint returned `403 InsufficientDelegatedPermissions`.
+- A tenant-local public-client app registration with delegated Power Platform API `CopilotStudio.Copilots.Invoke` consent produced a short-lived token with `scp: CopilotStudio.Copilots.Invoke`.
+- A direct POST to the Agents SDK SSE endpoint returned `200 OK`, `text/event-stream`, and a Microsoft conversation header.
+- Because the trial agent could not be published, Microsoft returned an activity text containing `LatestPublishedVersionNotFound`.
+- The packaged bridge completed real HTTP/SSE ACP `initialize`, `session/new`, and `session/prompt` calls using the invoke-scoped delegated token, including preserving Microsoft activity data under `_meta.microsoft`.
+
+This proves the ACP transport, delegated-token handoff, Microsoft SDK connection string path, and activity streaming path against the real Microsoft endpoint. It does not prove successful business-agent response generation because the test tenant could not publish the agent.
+
 ## Direct Line Boundary
 
 Microsoft documents Direct Line as the fallback when the Microsoft 365 Agents SDK does not support a scenario, including service principal token scenarios. This bridge's v1 target remains the Agents SDK path with delegated user tokens. Direct Line support can be considered later as a separate adapter mode.

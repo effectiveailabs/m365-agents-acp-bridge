@@ -165,6 +165,33 @@ describe('CopilotStudioMicrosoftAdapter with simulated Microsoft SSE', () => {
       status,
     });
   });
+
+  it('times out when the Microsoft SDK stream never yields', async () => {
+    vi.spyOn(CopilotStudioClient.prototype, 'startConversationStreaming').mockImplementation(
+      async function* () {
+        if (Date.now() === 0) {
+          yield undefined as never;
+        }
+        await new Promise(() => undefined);
+      },
+    );
+
+    const config = testConfig();
+    const adapter = new CopilotStudioMicrosoftAdapter(config, {
+      COPILOT_STUDIO_DIRECT_CONNECT_URL: 'https://copilot.example/direct',
+      M365_ACP_MICROSOFT_STREAM_TIMEOUT_MS: '5',
+    });
+
+    await expect(
+      adapter.startSession({
+        agent: config.agents[0]!,
+        auth: { accessToken: 'short-lived-token' },
+      }),
+    ).rejects.toMatchObject({
+      code: 'MS_STREAM_INTERRUPTED',
+      status: 504,
+    });
+  });
 });
 
 function sseResponse(activity: Record<string, unknown>): Response {

@@ -8,7 +8,7 @@ This is not GitHub Copilot. It is for Microsoft enterprise Copilot Studio / M365
 
 ## Status
 
-Early skeleton. The first implementation focuses on stable configuration, auth contracts, session mapping, activity mapping, and fake-adapter tests. Live Microsoft tenant integration is intentionally deferred until the contracts are stable.
+Early implementation. The package has working HTTP/SSE and stdio ACP transports, fake-adapter tests, Microsoft SDK SSE simulator tests, and one real Copilot Studio / Agents SDK compatibility run. A fully published-agent live test still depends on Microsoft licensing.
 
 ## Goals
 
@@ -102,6 +102,14 @@ Required Microsoft delegated permission:
 Power Platform API: CopilotStudio.Copilots.Invoke
 ```
 
+Optional runtime guard:
+
+```text
+M365_ACP_MICROSOFT_STREAM_TIMEOUT_MS=60000
+```
+
+This bounds each Microsoft SDK stream read so failed or stalled upstream streams cannot hang ACP requests indefinitely.
+
 ## Testing
 
 The package is designed to be tested without Microsoft tenant credentials.
@@ -115,8 +123,9 @@ Current automated coverage:
 - HTTP/SSE JSON-RPC transport smoke test
 - stdio ACP transport smoke test through the official ACP TypeScript SDK
 - real adapter consumption of Microsoft-like SSE by stubbing `fetch`
+- Microsoft SDK stalled-stream timeout behavior
 
-Live Microsoft validation is a separate compatibility step. A Copilot Studio trial can create agents and use the test chat panel, but Microsoft documentation says trial licenses cannot publish agents. Agents SDK validation needs an existing Copilot Studio agent, connection string or expanded metadata, an Entra app registration, and delegated `CopilotStudio.Copilots.Invoke` consent.
+Live Microsoft validation is a separate compatibility step. A Copilot Studio trial can create agents and expose a Native app / Agents SDK connection string, but Microsoft documentation says trial licenses cannot publish agents. Agents SDK validation needs an existing Copilot Studio agent, connection string or expanded metadata, an Entra app registration, and delegated `CopilotStudio.Copilots.Invoke` consent.
 
 See [docs/live-validation.md](docs/live-validation.md) for the live Microsoft validation ladder and credential gate.
 
