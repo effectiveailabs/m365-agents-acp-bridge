@@ -66,6 +66,120 @@ m365-agents-acp-bridge stdio --config ./m365-agents-acp-bridge.config.json
 
 HTTP/SSE remains the primary runtime transport for hosted bridge deployments.
 
+## Use From An ACP Client
+
+The bridge exposes one Microsoft Copilot Studio agent as an ACP agent. Your ACP client is
+responsible for obtaining a short-lived delegated Microsoft access token and passing it to
+the bridge. The bridge does not mint or store Microsoft refresh tokens.
+
+For HTTP/SSE clients:
+
+1. Open `GET /acp` and keep the SSE stream open for `session/update` events.
+2. Send JSON-RPC requests to `POST /acp`.
+3. Put the delegated Microsoft token on requests that invoke Microsoft:
+   `Authorization: Bearer <microsoft-access-token>`.
+4. Use `/agents/:agentId/acp` instead of `/acp` when the config contains multiple agents.
+
+Minimal HTTP/SSE flow:
+
+```bash
+BASE_URL=http://127.0.0.1:3838
+MICROSOFT_ACCESS_TOKEN='<delegated-access-token-with-CopilotStudio.Copilots.Invoke>'
+
+# Terminal 1: receive ACP session/update notifications.
+curl -N "$BASE_URL/acp"
+
+# Terminal 2: initialize the ACP agent.
+curl -s "$BASE_URL/acp" \
+  -H 'content-type: application/json' \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {
+      "protocolVersion": 1,
+      "clientCapabilities": {
+        "fs": false,
+        "terminal": false
+      }
+    }
+  }'
+
+# Create a session. The response contains result.sessionId.
+curl -s "$BASE_URL/acp" \
+  -H 'content-type: application/json' \
+  -H "authorization: Bearer $MICROSOFT_ACCESS_TOKEN" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 2,
+    "method": "session/new",
+    "params": {
+      "cwd": "/tmp",
+      "mcpServers": []
+    }
+  }'
+
+# Prompt the Microsoft agent. Read streamed content from Terminal 1.
+curl -s "$BASE_URL/acp" \
+  -H 'content-type: application/json' \
+  -H "authorization: Bearer $MICROSOFT_ACCESS_TOKEN" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 3,
+    "method": "session/prompt",
+    "params": {
+      "sessionId": "session-1",
+      "prompt": [
+        {
+          "type": "text",
+          "text": "Hello"
+        }
+      ]
+    }
+  }'
+```
+
+The SSE stream emits ACP notifications like:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "session/update",
+  "params": {
+    "sessionId": "session-1",
+    "update": {
+      "sessionUpdate": "agent_message_chunk",
+      "content": {
+        "type": "text",
+        "text": "Hello from Copilot Studio",
+        "_meta": {
+          "microsoft": {
+            "activity": {}
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+Cancellation is an ACP notification, so send it without an `id`:
+
+```bash
+curl -s "$BASE_URL/acp" \
+  -H 'content-type: application/json' \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "session/cancel",
+    "params": {
+      "sessionId": "session-1"
+    }
+  }'
+```
+
+Microsoft Copilot Studio agents do not receive filesystem, terminal, or diff tools from this
+bridge. ACP clients should advertise those capabilities as unavailable for bridge sessions.
+
 ## Config
 
 Secrets are references, not plaintext config values.
