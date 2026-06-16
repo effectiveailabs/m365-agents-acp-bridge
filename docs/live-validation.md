@@ -61,6 +61,17 @@ az rest \
 
 An empty `value: []` response means the login works, but the user currently has no visible Power Platform environment through this API. It is not enough for Agents SDK live validation.
 
+Check whether tenant policy blocks non-admin environment creation:
+
+```bash
+az rest \
+  --method post \
+  --resource https://api.bap.microsoft.com \
+  --url 'https://api.bap.microsoft.com/providers/Microsoft.BusinessAppPlatform/listtenantsettings?api-version=2020-10-01' \
+  --query '{disableEnvironmentCreationByNonAdminUsers:disableEnvironmentCreationByNonAdminUsers,disableTrialEnvironmentCreationByNonAdminUsers:disableTrialEnvironmentCreationByNonAdminUsers,disableDeveloperEnvironmentCreationByNonAdminUsers:powerPlatform.governance.disableDeveloperEnvironmentCreationByNonAdminUsers}' \
+  --output json
+```
+
 Verify that the tenant exposes the Power Platform API service principal and the Copilot Studio invoke delegated scope:
 
 ```bash
@@ -73,6 +84,8 @@ az ad sp list \
 The expected API app ID is `8578e004-a5c6-46e7-913e-12f58912df43`. The delegated scope value needed by the bridge is `CopilotStudio.Copilots.Invoke`.
 
 The Power Platform CLI (`pac`) is useful when it authenticates cleanly, but live validation should not depend on it. If `pac auth create --deviceCode` fails locally, prefer the Azure CLI probes above and continue with explicit live agent inputs.
+
+If environment creation is not blocked but the environment list is empty, the remaining setup is a Microsoft product/licensing step: sign up for Power Apps Developer Plan, Power Apps trial, Copilot Studio trial, or use an existing paid tenant/environment. Microsoft documents that Microsoft 365 licenses alone do not allow users to manage environments.
 
 Relevant Microsoft docs:
 
