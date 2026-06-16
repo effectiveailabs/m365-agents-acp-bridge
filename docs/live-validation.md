@@ -29,6 +29,51 @@ Current Microsoft documentation makes fully automated live validation unreliable
 - Copilot Studio trial environments expire after 30 days and delete agents/data when the environment expires.
 - The Microsoft 365 Agents SDK path requires an existing Copilot Studio agent plus either the SDK connection string/direct-connect URL or expanded metadata.
 
+## CLI Probes Before Requesting Credentials
+
+Maintainers should exhaust read-only tenant probes before asking for live agent access. These commands do not print access tokens or secrets.
+
+Authenticate with tenant-level access when no Azure subscription is available:
+
+```bash
+az login --allow-no-subscriptions --use-device-code
+az account show --query '{tenantId:tenantId,user:user.name,name:name}' --output json
+```
+
+Check that Azure CLI can mint a Power Platform API token without printing it:
+
+```bash
+az account get-access-token \
+  --resource https://api.powerplatform.com \
+  --query '{tenant:tenant,expiresOn:expiresOn,tokenType:tokenType}' \
+  --output json
+```
+
+List Power Platform environments visible to the signed-in user:
+
+```bash
+az rest \
+  --method get \
+  --resource https://api.powerplatform.com \
+  --url 'https://api.powerplatform.com/environmentmanagement/environments?api-version=2024-10-01' \
+  --output json
+```
+
+An empty `value: []` response means the login works, but the user currently has no visible Power Platform environment through this API. It is not enough for Agents SDK live validation.
+
+Verify that the tenant exposes the Power Platform API service principal and the Copilot Studio invoke delegated scope:
+
+```bash
+az ad sp list \
+  --display-name "Power Platform API" \
+  --query '[].{appId:appId,oauth2PermissionScopes:oauth2PermissionScopes[?value==`CopilotStudio.Copilots.Invoke`].value,appRoles:appRoles[?value==`CopilotStudio.Copilots.Invoke`].value}' \
+  --output json
+```
+
+The expected API app ID is `8578e004-a5c6-46e7-913e-12f58912df43`. The delegated scope value needed by the bridge is `CopilotStudio.Copilots.Invoke`.
+
+The Power Platform CLI (`pac`) is useful when it authenticates cleanly, but live validation should not depend on it. If `pac auth create --deviceCode` fails locally, prefer the Azure CLI probes above and continue with explicit live agent inputs.
+
 Relevant Microsoft docs:
 
 - [Microsoft 365 Developer Program](https://developer.microsoft.com/en-us/microsoft-365/dev-program)
