@@ -66,6 +66,32 @@ m365-acp stdio --config ./m365-acp.config.json
 
 HTTP/SSE remains the primary runtime transport for hosted bridge deployments.
 
+## Validate Setup
+
+Run `doctor` before starting the bridge. It checks config resolution and the shape of the
+delegated Microsoft token without printing access tokens, connection strings, or direct-connect
+URLs.
+
+```bash
+export MICROSOFT_ACCESS_TOKEN='<delegated-token-with-CopilotStudio.Copilots.Invoke>'
+m365-acp doctor --config ./m365-acp.config.json
+```
+
+Use `--token-env NAME` if your token lives in a different environment variable.
+
+After the bridge is running, use `probe` for an end-to-end ACP HTTP/SSE smoke test:
+
+```bash
+m365-acp probe \
+  --url http://127.0.0.1:3838/acp \
+  --prompt "Perform live validation." \
+  --transcript /tmp/m365-acp-probe.json
+```
+
+`probe` opens the SSE stream, sends `initialize`, `session/new`, and `session/prompt`, waits for a
+streamed `session/update`, and writes a sanitized transcript when `--transcript` is provided. The
+transcript excludes authorization headers and bearer tokens.
+
 ## Use From An ACP Client
 
 The bridge exposes one Microsoft Copilot Studio agent as an ACP agent. Your ACP client is
@@ -231,6 +257,8 @@ The package is designed to be tested without Microsoft tenant credentials.
 Current automated coverage:
 
 - config parsing, auth mode validation, and secret redaction
+- `m365-acp doctor` token/config diagnostics
+- `m365-acp probe` HTTP/SSE lifecycle validation
 - Microsoft activity mapping with rich payload preservation under `_meta.microsoft`
 - ACP initialize/authenticate/session lifecycle with a fake Microsoft adapter
 - best-effort `session/cancel`

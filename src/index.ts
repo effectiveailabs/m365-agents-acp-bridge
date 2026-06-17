@@ -10,6 +10,8 @@ export {
 } from './config/load.js';
 export { redactSensitive, redactString } from './config/redact.js';
 export { resolveSecretRef, SecretRefError } from './config/secrets.js';
+export { accessTokenFromEnv, decodeAccessToken, hasScope } from './auth/token.js';
+export type { DecodedAccessToken } from './auth/token.js';
 export type {
   AgentConfig,
   AuthConfig,
@@ -21,6 +23,15 @@ export type {
   ServerConfig,
   TokenSource,
 } from './config/types.js';
+export { formatDoctorResult, runDoctor } from './diagnostics/doctor.js';
+export type {
+  DoctorCheck,
+  DoctorOptions,
+  DoctorResult,
+  DoctorSeverity,
+} from './diagnostics/doctor.js';
+export { formatProbeResult, runProbe } from './diagnostics/probe.js';
+export type { ProbeOptions, ProbeResult } from './diagnostics/probe.js';
 export { BridgeError } from './errors.js';
 export type { BridgeErrorCode } from './errors.js';
 export { FakeMicrosoftAgentAdapter } from './microsoft/fakeAdapter.js';

@@ -70,6 +70,7 @@ export async function startHttpBridgeServer(
     url,
     close() {
       return new Promise((resolve, reject) => {
+        server.closeAllConnections();
         server.close((error) => (error ? reject(error) : resolve()));
       });
     },

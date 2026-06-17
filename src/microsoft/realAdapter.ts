@@ -1,8 +1,8 @@
 import { Activity } from '@microsoft/agents-activity';
-import { ConnectionSettings, CopilotStudioClient } from '@microsoft/agents-copilotstudio-client';
-import { resolveSecretRef } from '../config/secrets.js';
+import { CopilotStudioClient } from '@microsoft/agents-copilotstudio-client';
 import type { BridgeConfig } from '../config/types.js';
 import { BridgeError } from '../errors.js';
+import { connectionSettingsForCopilot } from './connectionSettings.js';
 import type {
   MicrosoftActivityEvent,
   MicrosoftAgentAdapter,
@@ -105,31 +105,8 @@ export class CopilotStudioMicrosoftAdapter implements MicrosoftAgentAdapter {
       );
     }
 
-    const settings = await this.connectionSettings(input);
+    const settings = await connectionSettingsForCopilot(input.agent.copilotStudio, this.env);
     return new CopilotStudioClient(settings, token);
-  }
-
-  private async connectionSettings(input: StartMicrosoftSessionInput | SendMicrosoftPromptInput) {
-    const copilot = input.agent.copilotStudio;
-    const directConnectUrl = copilot.directConnectUrl
-      ? await resolveSecretRef(copilot.directConnectUrl, this.env)
-      : undefined;
-
-    const connectionString = copilot.connectionString
-      ? await resolveSecretRef(copilot.connectionString, this.env)
-      : undefined;
-
-    return new ConnectionSettings({
-      tenantId: copilot.tenantId,
-      appClientId: copilot.clientId,
-      environmentId: copilot.environmentId,
-      schemaName: copilot.schemaName,
-      agentIdentifier: copilot.agentIdentifier,
-      directConnectUrl: directConnectUrl ?? connectionString,
-      cloud: copilot.cloud as ConstructorParameters<typeof ConnectionSettings>[0]['cloud'],
-      customPowerPlatformCloud: copilot.customPowerPlatformCloud,
-      useExperimentalEndpoint: copilot.useExperimentalEndpoint,
-    });
   }
 }
 
