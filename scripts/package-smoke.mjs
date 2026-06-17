@@ -66,7 +66,7 @@ try {
     ).href
   );
 
-  const help = execFileSync(pnpmBin(), ['exec', 'm365-agents-acp-bridge', '--help'], {
+  const help = execFileSync(pnpmBin(), ['exec', 'm365-acp', '--help'], {
     cwd: consumerDir,
     encoding: 'utf8',
   });

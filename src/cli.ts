@@ -60,9 +60,9 @@ function printHelp(): void {
   console.log(`M365 Agents ACP Bridge
 
 Usage:
-  m365-agents-acp-bridge serve --config ./m365-agents-acp-bridge.config.json
-  m365-agents-acp-bridge stdio --config ./m365-agents-acp-bridge.config.json
-  m365-agents-acp-bridge init
+  m365-acp serve --config ./m365-acp.config.json
+  m365-acp stdio --config ./m365-acp.config.json
+  m365-acp init
 
 Commands:
   serve   Start the HTTP/SSE ACP bridge

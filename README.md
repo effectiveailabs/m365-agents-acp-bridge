@@ -36,7 +36,7 @@ pnpm add @effectiveai/m365-agents-acp-bridge
 ## Run
 
 ```bash
-m365-agents-acp-bridge serve --config ./m365-agents-acp-bridge.config.json
+m365-acp serve --config ./m365-acp.config.json
 ```
 
 Default endpoint:
@@ -61,7 +61,7 @@ DELETE /agents/:agentId/acp
 For local ACP clients that expect stdio NDJSON:
 
 ```bash
-m365-agents-acp-bridge stdio --config ./m365-agents-acp-bridge.config.json
+m365-acp stdio --config ./m365-acp.config.json
 ```
 
 HTTP/SSE remains the primary runtime transport for hosted bridge deployments.

@@ -5,7 +5,7 @@
   "license": "Apache-2.0",
   "type": "module",
   "bin": {
-    "m365-agents-acp-bridge": "dist/cli.js"
+    "m365-acp": "dist/cli.js"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
