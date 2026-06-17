@@ -126,7 +126,7 @@ Microsoft references:
 - [Power Platform API authentication](https://learn.microsoft.com/en-us/power-platform/admin/programmability-authentication-v2)
 - [Copilot Studio Microsoft authentication setup](https://learn.microsoft.com/en-us/microsoft-copilot-studio/guidance/kit-microsoft-authentication)
 
-## Observed Compatibility Run
+## Observed Compatibility Runs
 
 On 2026-06-16, a self-service test tenant validated the bridge against the real Copilot Studio / Microsoft 365 Agents SDK endpoint without storing secrets in the repo:
 
@@ -143,17 +143,34 @@ On 2026-06-16, a self-service test tenant validated the bridge against the real 
 
 This proves the ACP transport, delegated-token handoff, Microsoft SDK connection string path, and activity streaming path against the real Microsoft endpoint. It does not prove successful business-agent response generation because the test tenant could not publish the agent.
 
-Additional PAYG attempt on 2026-06-16:
+Additional PAYG setup on 2026-06-16:
 
 - A pay-as-you-go Azure subscription was created and protected with a low monthly Azure budget.
 - `Microsoft.PowerPlatform` was registered on the subscription.
 - A Power Platform billing policy with Copilot Studio message metering was created and linked to a new Sandbox environment with Dataverse.
 - A real Copilot Studio agent draft was created successfully in the Sandbox environment.
 - The maker had Sandbox Dataverse `System Administrator`, `Environment Maker`, `Bot Author`, `Bot Contributor`, `Microsoft Copilot Administrator`, and related roles.
-- Publishing was still blocked with Microsoft's message that the user did not have a license allowing publishing in Copilot Studio.
-- The signed-in user was Azure subscription Owner but not a Microsoft 365/Entra Global Administrator, AI Administrator, or Power Platform Administrator; PPAC tenant settings returned unauthorized, and Microsoft Graph denied self-assigning a tenant admin role.
+- Publishing initially failed until tenant-level Copilot Studio author access and Copilot Studio PAYG message metering were both configured.
+- The tenant setting used by PPAC stores the Copilot Studio authors security group ID. In the observed tenant, setting that group and enabling the billing policy's `MCSMessages` PAYG entitlement unblocked publish.
+- The Sandbox agent then published successfully. Dataverse reported schema name `cre09_acpBridgePublishedTestAgent`, publish status `Succeeded`, and `publishedon` `2026-06-17T00:01:33Z`.
 
-Conclusion: for PAYG published-agent validation, the required final setup is tenant-admin action, not more Azure or Dataverse setup. A tenant admin must either add the maker's security group to the PPAC **Copilot Studio authors** tenant setting, assign a qualifying Copilot Studio user/maker license, or sign in to complete the publish step.
+Published-agent ACP validation on 2026-06-16:
+
+- The bridge was started with expanded config: tenant ID, environment ID, and schema name. No Microsoft connection string, direct-connect URL, token, or client secret was committed to the repo.
+- A delegated Power Platform token with `scp: CopilotStudio.Copilots.Invoke` was minted through an Entra OBO exchange and passed to the bridge as `external_token`.
+- ACP `initialize` returned bridge metadata and did not advertise filesystem, terminal, or diff capabilities.
+- ACP `session/new` returned a Microsoft conversation ID from the published Copilot Studio agent.
+- ACP `session/prompt` with `Perform live validation.` completed with `stopReason: end_turn`.
+- The SSE stream emitted `session/update` notifications, including a final `agent_message_chunk` with text `ACP live validation ok`.
+- The final ACP content preserved the Microsoft activity under `_meta.microsoft.activity`, including conversation ID, bot schema name, channel ID `pva-published-engine-direct`, streaming metadata, and Microsoft entities.
+
+Auth findings:
+
+- Azure CLI's built-in Microsoft first-party app still could not request `CopilotStudio.Copilots.Invoke`; Microsoft returned the expected preauthorization error.
+- A Power Platform app-only token with `roles: CopilotStudio.Copilots.Invoke` could be minted after assigning the application role, but it did not yield a usable Agents SDK stream in this validation. Keep app-only/service-principal invocation out of v1.
+- An OBO-minted delegated token with `scp: CopilotStudio.Copilots.Invoke` did work with the Microsoft SDK when passed into the bridge as `external_token`. First-class token exchange inside the bridge remains future work.
+
+Conclusion: for PAYG published-agent validation, Azure billing, PPAC tenant author access, and billing-policy message metering must all be in place. Once those are configured, the bridge can invoke a published Copilot Studio agent over ACP HTTP/SSE using a short-lived delegated Power Platform token.
 
 ## Direct Line Boundary
 

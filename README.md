@@ -8,7 +8,7 @@ This is not GitHub Copilot. It is for Microsoft enterprise Copilot Studio / M365
 
 ## Status
 
-Early implementation. The package has working HTTP/SSE and stdio ACP transports, fake-adapter tests, Microsoft SDK SSE simulator tests, and one real Copilot Studio / Agents SDK compatibility run. A fully published-agent live test still depends on Microsoft licensing.
+Early implementation. The package has working HTTP/SSE and stdio ACP transports, fake-adapter tests, Microsoft SDK SSE simulator tests, and a published-agent live validation against Copilot Studio / Microsoft 365 Agents SDK.
 
 ## Goals
 
@@ -240,6 +240,8 @@ Current automated coverage:
 - Microsoft SDK stalled-stream timeout behavior
 
 Live Microsoft validation is a separate compatibility step. A Copilot Studio trial can create agents and expose a Native app / Agents SDK connection string, but Microsoft documentation says trial licenses cannot publish agents. Pay-as-you-go covers runtime billing, but the maker still needs tenant-level Copilot Studio author access or a qualifying license before they can publish. Agents SDK validation needs an existing published Copilot Studio agent, connection string or expanded metadata, an Entra app registration, delegated `CopilotStudio.Copilots.Invoke` consent, and confirmation that the maker can publish agents.
+
+The current bridge has been validated end to end against a published Copilot Studio agent over ACP HTTP/SSE. The successful token was a delegated Power Platform token with `scp: CopilotStudio.Copilots.Invoke`; app-only `roles: CopilotStudio.Copilots.Invoke` did not produce a usable Agents SDK stream in this test. A delegated token minted through an Entra OBO exchange worked when passed to the bridge as `external_token`.
 
 See [docs/live-validation.md](docs/live-validation.md) for the live Microsoft validation ladder and credential gate.
 
